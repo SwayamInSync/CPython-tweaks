@@ -9,7 +9,7 @@ py_dep = py.dependency(required: true)
 incdir = include_directories('/usr/include/python3.10')
 libdir = '/usr/lib/x86_64-linux-gnu'
 
-main = executable('main', 'fib.c',
+main = executable('main', 'main.c',
            dependencies: py_dep,
            include_directories: incdir,
            link_args: ['-L' + libdir, '-lpython3.10'])

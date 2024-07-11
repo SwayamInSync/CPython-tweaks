@@ -1,6 +1,7 @@
 {
     "files.associations": {
-        "sleefquad.h": "c"
+        "sleefquad.h": "c",
+        "stdlib.h": "c"
     },
     "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild",
     "C_Cpp.default.compileCommands": "/home/rootacess/qp/builddir/compile_commands.json",
