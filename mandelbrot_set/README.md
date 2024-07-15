@@ -1,5 +1,5 @@
 # Mandelbrot set in quad-precision
-Implemented using [Normalized Iteration Count](https://en.m.wikipedia.org/wiki/Plotting_algorithms_for_the_Mandelbrot_set#:~:text=Coloring,-algorithms)
+Implemented using [Normalized Iteration Count (Wikipedia)](https://en.m.wikipedia.org/wiki/Plotting_algorithms_for_the_Mandelbrot_set#:~:text=Coloring,-algorithms)
 
 **Pseudocode:**
 ```python
