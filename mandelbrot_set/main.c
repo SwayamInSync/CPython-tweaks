@@ -70,8 +70,9 @@ Color get_color(double t)
 
 float mandelbrot(Sleef_quad *cr, Sleef_quad *ci, int MAX_ITER, Sleef_quad *RADIUS2) 
 {
-    Sleef_quad z_real = 0.0Q;
-    Sleef_quad z_img = 0.0Q;
+    Sleef_quad z_real = Sleef_cast_from_doubleq1(0.0);
+    Sleef_quad z_img = Sleef_cast_from_doubleq1(0.0);
+    Sleef_quad two = Sleef_cast_from_doubleq1(2.0);
     Sleef_quad z_real2, z_img2;
 
     int i;
@@ -79,12 +80,12 @@ float mandelbrot(Sleef_quad *cr, Sleef_quad *ci, int MAX_ITER, Sleef_quad *RADIU
     for (i = 0; i < MAX_ITER; i++) 
     {
         z_real2 = Sleef_addq1_u05(Sleef_subq1_u05(Sleef_mulq1_u05(z_real, z_real), Sleef_mulq1_u05(z_img, z_img)), *cr);
-        z_img2 = Sleef_addq1_u05(Sleef_mulq1_u05(2.0Q, Sleef_mulq1_u05(z_real, z_img)), *ci);
+        z_img2 = Sleef_addq1_u05(Sleef_mulq1_u05(two, Sleef_mulq1_u05(z_real, z_img)), *ci);
 
         if (Sleef_icmpgtq1(get_abs_value(&z_real2, &z_img2), *RADIUS2)) 
         {
-            Sleef_quad log_zn = Sleef_logq1_u10(get_abs_value(&z_real2, &z_img2)) / 2.0Q;
-            Sleef_quad nu = Sleef_logq1_u10(log_zn / Sleef_logq1_u10(2.0Q)) / Sleef_logq1_u10(2.0Q);
+            Sleef_quad log_zn =  Sleef_divq1_u05(Sleef_logq1_u10(get_abs_value(&z_real2, &z_img2)), two);
+            Sleef_quad nu =  Sleef_divq1_u05(Sleef_logq1_u10(Sleef_divq1_u05(log_zn, SLEEF_M_LN2q)), SLEEF_M_LN2q);
             
             float smooth_iter = i + 1 - Sleef_cast_to_doubleq1(nu);
             return smooth_iter;
@@ -111,7 +112,7 @@ static PyObject* mandelbrot_set(PyObject* self, PyObject* args)
         return NULL;
     }
 
-    Sleef_quad RADIUS = 2.0Q;
+    Sleef_quad RADIUS = Sleef_cast_from_doubleq1(2.0);
     Sleef_quad RADIUS2 = Sleef_mulq1_u05(RADIUS, RADIUS);
     Sleef_quad zoom_q = Sleef_cast_from_doubleq1(1.0 / zoom);
 
