@@ -2,7 +2,7 @@ from setuptools import setup, Extension
 
 module = Extension(
     'mandelbrot',
-    sources=['main.c'],
+    sources=['main.cpp'],
     libraries=['sleef', 'sleefquad', 'm'],
     extra_compile_args=[
         '-fopenmp', 
