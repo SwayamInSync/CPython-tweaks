@@ -101,12 +101,11 @@ float mandelbrot(Sleef_quad *cr, Sleef_quad *ci, int MAX_ITER, Sleef_quad *RADIU
 static PyObject* mandelbrot_set(PyObject* self, PyObject* args) 
 {
     int width, height, max_iter;
-    double center_r, center_i, zoom;
+    const char * center_r, *center_i, *zoom;
 
-    if (!PyArg_ParseTuple(args, "iiiddd", &width, &height, &max_iter, &center_r, &center_i, &zoom))
+    if (!PyArg_ParseTuple(args, "iiisss", &width, &height, &max_iter, &center_r, &center_i, &zoom))
         return NULL;
-
-    unsigned char* img = malloc(width * height * 3);
+    unsigned char* img = (unsigned char *)malloc(width * height * 3);
     if (!img) {
         PyErr_NoMemory();
         return NULL;
@@ -114,8 +113,8 @@ static PyObject* mandelbrot_set(PyObject* self, PyObject* args)
 
     Sleef_quad RADIUS = Sleef_cast_from_doubleq1(2.0);
     Sleef_quad RADIUS2 = Sleef_mulq1_u05(RADIUS, RADIUS);
-    Sleef_quad zoom_q = Sleef_cast_from_doubleq1(1.0 / zoom);
-
+    Sleef_quad zoom_q = Sleef_strtoq(zoom, NULL);
+    zoom_q = Sleef_divq1_u05(1.0Q, zoom_q);
     #pragma omp parallel for
     for (int y = 0; y < height; y++) 
     {
@@ -124,8 +123,8 @@ static PyObject* mandelbrot_set(PyObject* self, PyObject* args)
             Sleef_quad cr = Sleef_mulq1_u05(Sleef_divq1_u05(Sleef_subq1_u05(Sleef_cast_from_int64q1(x), Sleef_cast_from_int64q1(width / 2)), Sleef_cast_from_int64q1(width / 2)), RADIUS);
             Sleef_quad ci = Sleef_mulq1_u05(Sleef_divq1_u05(Sleef_subq1_u05(Sleef_cast_from_int64q1(y), Sleef_cast_from_int64q1(height / 2)), Sleef_cast_from_int64q1(height / 2)), RADIUS);
             
-            cr = Sleef_addq1_u05(Sleef_mulq1_u05(cr, zoom_q), Sleef_cast_from_doubleq1(center_r));
-            ci = Sleef_addq1_u05(Sleef_mulq1_u05(ci, zoom_q), Sleef_cast_from_doubleq1(center_i));
+            cr = Sleef_addq1_u05(Sleef_mulq1_u05(cr, zoom_q), Sleef_strtoq(center_r, NULL));
+            ci = Sleef_addq1_u05(Sleef_mulq1_u05(ci, zoom_q), Sleef_strtoq(center_i, NULL));
 
             float smooth_iter = mandelbrot(&cr, &ci, max_iter, &RADIUS2);
             
