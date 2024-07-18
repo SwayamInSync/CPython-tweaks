@@ -32,61 +32,60 @@ Sleef_quad get_abs_value(Sleef_quad *r, Sleef_quad *i)
     return Sleef_addq1_u05(rr, ii);
 }
 
-Color get_color(double t, Sleef_quad *final_z_real, Sleef_quad *final_z_img) 
+Color get_color(double t, double interior_t) 
 {
     Color color;
-    t = fmod(t * 20, 1.0); // Adjust color cycle frequency for more bands
     const double epsilon = 1e-10;
 
     // Interior coloring
     if (fabs(t - 1.0) < epsilon) {
-        Sleef_quad abs_z = Sleef_sqrtq1_u05(get_abs_value(final_z_real, final_z_img));
-        double interior_t = Sleef_cast_to_doubleq1(Sleef_fmodq1(abs_z, Sleef_cast_from_doubleq1(1.0)));
-        color.r = (unsigned char)(255 * interior_t);
-        color.g = (unsigned char)(128 * (1 - interior_t));
-        color.b = (unsigned char)(64 * interior_t);
+        // Use a gradient from black to white for interior points
+        unsigned char value = (unsigned char)(255 * interior_t);
+        color.r = value;
+        color.g = value;
+        color.b = value;
         return color;
     }
 
-    if (t < 0.16) 
-    {
+    // Exterior coloring
+    t = pow(t, 0.5); // Square root to spread out colors more evenly
+    t = fmod(t * 20, 1.0); // Increase color cycle frequency for more bands
+
+    if (t < 0.16) {
         // Dark blue to light blue
-        double v = t / 0.16;
         color.r = 0;
-        color.g = (unsigned char)(150 * v);
-        color.b = (unsigned char)(255 * (0.5 + 0.5 * v));
+        color.g = (unsigned char)(255 * (t / 0.16));
+        color.b = (unsigned char)(128 + 127 * (t / 0.16));
     } 
-    else if (t < 0.42) 
-    {
-        // Light blue to white
-        double v = (t - 0.16) / 0.26;
-        color.r = (unsigned char)(255 * v);
-        color.g = (unsigned char)(150 + 105 * v);
-        color.b = 255;
-    } 
-    else if (t < 0.6425) 
-    {
-        // White to yellow
-        double v = (t - 0.42) / 0.2225;
-        color.r = 255;
+    else if (t < 0.33) {
+        // Light blue to cyan
+        color.r = 0;
         color.g = 255;
-        color.b = (unsigned char)(255 * (1 - v));
+        color.b = (unsigned char)(255 * (1 - (t - 0.16) / 0.17));
     } 
-    else if (t < 0.8575) 
-    {
-        // Yellow to orange
-        double v = (t - 0.6425) / 0.215;
-        color.r = 255;
-        color.g = (unsigned char)(255 * (1 - 0.4 * v));
+    else if (t < 0.5) {
+        // Cyan to green
+        color.r = (unsigned char)(255 * ((t - 0.33) / 0.17));
+        color.g = 255;
         color.b = 0;
     } 
-    else 
-    {
-        // Orange to dark blue (cycle completion)
-        double v = (t - 0.8575) / 0.1425;
-        color.r = (unsigned char)(255 * (1 - v));
-        color.g = (unsigned char)(153 * (1 - v));
-        color.b = (unsigned char)(128 * v);
+    else if (t < 0.66) {
+        // Green to yellow
+        color.r = 255;
+        color.g = (unsigned char)(255 * (1 - (t - 0.5) / 0.16));
+        color.b = 0;
+    } 
+    else if (t < 0.83) {
+        // Yellow to red
+        color.r = 255;
+        color.g = 0;
+        color.b = (unsigned char)(255 * ((t - 0.66) / 0.17));
+    } 
+    else {
+        // Red to dark blue
+        color.r = (unsigned char)(255 * (1 - (t - 0.83) / 0.17));
+        color.g = 0;
+        color.b = (unsigned char)(128 * ((t - 0.83) / 0.17));
     }
 
     return color;
@@ -109,8 +108,8 @@ MandelbrotResult mandelbrot(Sleef_quad *cr, Sleef_quad *ci, int MAX_ITER, Sleef_
 
         if (Sleef_icmpgtq1(get_abs_value(&z_real2, &z_img2), *RADIUS2)) 
         {
-            Sleef_quad log_zn =  Sleef_divq1_u05(Sleef_logq1_u10(get_abs_value(&z_real2, &z_img2)), two);
-            Sleef_quad nu =  Sleef_divq1_u05(Sleef_logq1_u10(Sleef_divq1_u05(log_zn, SLEEF_M_LN2q)), SLEEF_M_LN2q);
+            Sleef_quad log_zn = Sleef_logq1_u10(get_abs_value(&z_real2, &z_img2));
+            Sleef_quad nu = Sleef_logq1_u10(log_zn / SLEEF_M_LN2q) / SLEEF_M_LN2q;
             
             result.smooth_iter = i + 1 - Sleef_cast_to_doubleq1(nu);
             result.final_z_real = z_real2;
@@ -164,6 +163,55 @@ ComplexQuad complex_quad_derivative(ComplexQuad z, ComplexQuad c, int n)
     return complex_quad_mul(prev, (ComplexQuad){Sleef_cast_from_doubleq1(2.0), Sleef_cast_from_doubleq1(0.0)});
 }
 
+typedef struct {
+    ComplexQuad z;
+    ComplexQuad dz;
+    ComplexQuad dc;
+    ComplexQuad dzdz;
+} Derivatives;
+
+Derivatives iterate_and_compute_derivatives(ComplexQuad c, int max_iter) {
+    ComplexQuad z = {Sleef_cast_from_doubleq1(0.0), Sleef_cast_from_doubleq1(0.0)};
+    ComplexQuad dz = {Sleef_cast_from_doubleq1(1.0), Sleef_cast_from_doubleq1(0.0)};
+    ComplexQuad dc = {Sleef_cast_from_doubleq1(0.0), Sleef_cast_from_doubleq1(0.0)};
+    ComplexQuad dzdz = {Sleef_cast_from_doubleq1(0.0), Sleef_cast_from_doubleq1(0.0)};
+    ComplexQuad two = {Sleef_cast_from_doubleq1(2.0), Sleef_cast_from_doubleq1(0.0)};
+
+    for (int i = 0; i < max_iter; i++) {
+        // Update dzdz
+        dzdz = complex_quad_add(complex_quad_mul(two, complex_quad_mul(z, dzdz)), complex_quad_mul(dz, dz));
+        
+        // Update dz
+        dz = complex_quad_add(complex_quad_mul(two, complex_quad_mul(z, dz)), dc);
+        
+        // Update z
+        z = complex_quad_add(complex_quad_mul(z, z), c);
+        
+        // Update dc (always 1)
+        dc.real = Sleef_cast_from_doubleq1(1.0);
+        dc.img = Sleef_cast_from_doubleq1(0.0);
+    }
+
+    Derivatives result = {z, dz, dc, dzdz};
+    return result;
+}
+
+Sleef_quad estimate_interior_distance(ComplexQuad c, int max_iter) {
+    Derivatives d = iterate_and_compute_derivatives(c, max_iter);
+    
+    Sleef_quad dz_abs_sq = get_abs_value(&d.dz.real, &d.dz.img);
+    Sleef_quad one = Sleef_cast_from_doubleq1(1.0);
+    Sleef_quad numerator = Sleef_subq1_u05(one, dz_abs_sq);
+    
+    ComplexQuad denominator_term1 = complex_quad_mul(d.dc, d.dz);
+    ComplexQuad denominator_term2 = complex_quad_mul(d.dzdz, complex_quad_mul(d.z, d.dc));
+    ComplexQuad denominator = complex_quad_add(denominator_term1, denominator_term2);
+    
+    Sleef_quad denominator_abs = Sleef_sqrtq1_u05(get_abs_value(&denominator.real, &denominator.img));
+    
+    return Sleef_divq1_u05(numerator, denominator_abs);
+}
+
 Sleef_quad estimate_distance(Sleef_quad cr, Sleef_quad ci, int period) 
 {
     ComplexQuad c = {cr, ci};
@@ -213,6 +261,10 @@ void find_interesting_point(Sleef_quad *center_r, Sleef_quad *center_i, Sleef_qu
     *center_i = best_i;
 }
 
+Sleef_quad interior_distance(Sleef_quad z_real, Sleef_quad z_img) {
+    return Sleef_sqrtq1_u05(get_abs_value(&z_real, &z_img));
+}
+
 static PyObject* mandelbrot_set(PyObject* self, PyObject* args) 
 {
     int width, height, max_iter;
@@ -252,14 +304,15 @@ static PyObject* mandelbrot_set(PyObject* self, PyObject* args)
             if (result.smooth_iter == max_iter) 
             {
                 // Interior point
-                Sleef_quad abs_z = Sleef_sqrtq1_u05(get_abs_value(&result.final_z_real, &result.final_z_img));
-                double interior_t = Sleef_cast_to_doubleq1(Sleef_fmodq1(abs_z, Sleef_cast_from_doubleq1(1.0)));
-                color = get_color(1.0, &result.final_z_real, &result.final_z_img);
+                ComplexQuad c = {cr, ci};
+                Sleef_quad distance = estimate_interior_distance(c, max_iter);
+                double interior_t = Sleef_cast_to_doubleq1(Sleef_fmodq1(distance, Sleef_cast_from_doubleq1(1.0)));
+                color = get_color(1.0, interior_t);  // Modify get_color to accept interior_t
             } 
             else 
             {
                 double t = result.smooth_iter / (double)max_iter;
-                color = get_color(t, &result.final_z_real, &result.final_z_img);
+                color = get_color(t, 0.0);  // 0.0 as placeholder for exterior points
             }
             
             img[(y * width + x) * 3 + 0] = color.r;
