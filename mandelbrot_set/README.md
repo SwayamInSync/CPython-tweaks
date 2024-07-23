@@ -3,7 +3,8 @@ Theoretical reference is taken from [Plotting algorithms for the Mandelbrot set(
 
 | double | long double | __float128 |
 |--------|-------------|------------|
-| ![Mandelbrot set using double](path_to_double_image) | ![Mandelbrot set using long double](path_to_long_double_image) | ![Mandelbrot set using __float128](path_to_float128_image) |
+| ![double](https://github.com/user-attachments/assets/4088a436-0057-4836-8b4d-31d9ef70a3d5) | ![long double](https://github.com/user-attachments/assets/738671ca-be91-4f24-a570-fad8307e6e6d) | ![__float128](https://github.com/user-attachments/assets/5f35b191-5339-445c-a19d-e2a4bf20b8b2) |
+
 
 ## Installation
 - Compile and build [Sleef](https://sleef.org/)
